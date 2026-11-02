@@ -13,8 +13,12 @@ from random import randint
 
 import pygame
 
-from constants import APPLE_COLOR, BAD_APPLE_COLOR, BOARD_BACKGROUND_COLOR, DOWN, GRID_HEIGHT, GRID_SIZE, GRID_WIDTH, LEFT, RIGHT, SCREEN_HEIGHT, SCREEN_WIDTH, SNAKE_COLOR, SPEED, STONE_COLOR, UP
-from game_objects import Apple, BadApple, GameObject, Snake, Stone, TriangleBigStone
+from constants import APPLE_COLOR, BAD_APPLE_COLOR, BOARD_BACKGROUND_COLOR
+from constants import DOWN, GRID_HEIGHT, GRID_SIZE, GRID_WIDTH, LEFT, RIGHT
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH, SNAKE_COLOR, SPEED
+from constants import STONE_COLOR, UP
+from game_objects import Apple, BadApple, GameObject, Snake, Stone
+from game_objects import TriangleBigStone
 
 
 __all__ = [
