@@ -9,7 +9,6 @@ Attributes:
     screen (pygame.Surface): Главное графическое окно отображения игры.
     clock (pygame.time.Clock): Игровой таймер для контроля частоты кадров.
 """
-
 from random import randint
 
 import pygame

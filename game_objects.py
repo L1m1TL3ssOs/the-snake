@@ -5,14 +5,12 @@
 (без графического контекста Pygame) при передаче `surface=None`.
 """
 
-import constants as const
-
 from random import choice, randint
 
 import pygame
+import constants as const
 
 
-# Тут опишите все классы игры.
 class GameObject():
     """Базовый абстрактный класс для всех игровых объектов.
 
