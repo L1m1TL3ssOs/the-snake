@@ -30,14 +30,20 @@ class Apple(GameObject):
         super().__init__(surface, body_color, position)
         self.color = body_color
         self.position = position
+        self.image = None
         if position is None:
             self.randomize_position(existing_obstacles)
+        if self.surface is not None:
+            self.image = pygame.image.load(
+                const.APPLE_IMG_PATH).convert_alpha()
+            self.image = pygame.transform.scale(
+                self.image, (const.GRID_SIZE, const.GRID_SIZE))
 
     def draw(self):
         """Метод draw класса Apple"""
-        rect = pygame.Rect(self.position, (const.GRID_SIZE, const.GRID_SIZE))
-        pygame.draw.rect(self.surface, self.body_color, rect)
-        pygame.draw.rect(self.surface, const.BORDER_COLOR, rect, 1)
+        if self.surface is None or self.image is None:
+            return
+        self.surface.blit(self.image, self.position)
 
     def randomize_position(self, existing_obstacles):
         """Метод отвечает за случайную позицию яблока на экране"""
@@ -70,6 +76,11 @@ class BadApple(Apple):
             existing_obstacles=None
     ):
         super().__init__(surface, body_color, position)
+        if self.surface is not None:
+            self.image = pygame.image.load(
+                const.BAD_APPLE_IMG_PATH).convert_alpha()
+            self.image = pygame.transform.scale(
+                self.image, (const.GRID_SIZE, const.GRID_SIZE))
 
 
 class Stone(GameObject):
@@ -83,9 +94,15 @@ class Stone(GameObject):
             existing_obstacles=None
     ):
         super().__init__(surface, body_color, position)
+        self.image = None
         if position is None:
             self.randomize_position(existing_obstacles)
         self.positions = [self.position]
+        if self.surface is not None:
+            self.image = pygame.image.load(
+                const.STONE_IMG_PATH).convert_alpha()
+            self.image = pygame.transform.scale(
+                self.image, (const.GRID_SIZE, const.GRID_SIZE))
 
     def randomize_position(self, existing_obstacles):
         """Метод отвечает за случайную позицию камня на экране"""
@@ -111,18 +128,23 @@ class Stone(GameObject):
 
     def draw(self):
         """Отрисовка камней"""
-        rect = pygame.Rect(self.position, (const.GRID_SIZE, const.GRID_SIZE))
-        pygame.draw.rect(self.surface, self.body_color, rect)
-        pygame.draw.rect(self.surface, const.BORDER_COLOR, rect, 1)
+        self.surface.blit(self.image, self.position)
 
 
 class TriangleBigStone(GameObject):
     """Класс TriangleBigStone - препятствие для змейки"""
 
-    def __init__(self, surface, body_color, position=None):
+    def __init__(
+            self,
+            surface,
+            body_color,
+            position=None,
+            existing_obstacles=None
+    ):
         super().__init__(surface, body_color, position)
+        self.image = None
         if position is None:
-            self.randomize_position()
+            self.randomize_position(existing_obstacles)
         x, y = self.position
         self.positions = [
             (x, y),
@@ -143,11 +165,27 @@ class TriangleBigStone(GameObject):
             ],
         )
 
-    def randomize_position(self):
+    def randomize_position(self, existing_obstacles):
         """Метод отвечает за случайную позицию камня на экране"""
-        new_position_x = randint(1, const.GRID_WIDTH - 2) * const.GRID_SIZE
-        new_position_y = randint(1, const.GRID_HEIGHT - 2) * const.GRID_SIZE
-        self.position = (new_position_x, new_position_y)
+        if not isinstance(existing_obstacles, list):
+            existing_obstacles = []
+        while True:
+            new_x = randint(1, const.GRID_WIDTH - 2) * const.GRID_SIZE
+            new_y = randint(0, const.GRID_HEIGHT - 2) * const.GRID_SIZE
+            fit_position = True
+            for obstacle in existing_obstacles:
+                for cell in obstacle.positions:
+                    if (
+                        abs(new_x - cell[0]) <= 3 * const.GRID_SIZE
+                        and abs(new_y - cell[1]) <= 3 * const.GRID_SIZE
+                    ):
+                        fit_position = False
+                        break
+                if not fit_position:
+                    break
+            if fit_position is True:
+                self.position = (new_x, new_y)
+                break
 
 
 class Snake(GameObject):

@@ -33,3 +33,9 @@ SPEED = 5
 
 # Таймер замерания змейки:
 BOUNCE_FREEZE_TICKS = 5
+
+# Пути к готовым спрайтам:
+APPLE_IMG_PATH = 'assets/apple_64.png'
+BAD_APPLE_IMG_PATH = 'assets/mushroom_64.png'
+STONE_IMG_PATH = 'assets/stone_small.png'
+MOUNTAIN_IMG_PATH = 'assets/mountain_big.png'

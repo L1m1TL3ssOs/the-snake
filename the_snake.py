@@ -9,6 +9,11 @@ from game_objects import (
 )
 from random import randint
 
+__all__ = [
+    'GRID_SIZE', 'GRID_WIDTH', 'GRID_HEIGHT', 'GameObject', 'main',
+    'handle_keys'
+]
+
 # Заголовок окна игрового поля:
 pygame.display.set_caption('Змейка')
 
@@ -57,7 +62,9 @@ def main():
     # Создание объектов
     obstacles = []
     for _ in range(1, 5):
-        obstacles.append(TriangleBigStone(screen, STONE_COLOR))
+        obstacles.append(
+            TriangleBigStone(screen, STONE_COLOR, existing_obstacles=obstacles)
+        )
     for _ in range(randint(10, 20)):
         obstacles.append(
             Stone(screen, STONE_COLOR, existing_obstacles=obstacles)
