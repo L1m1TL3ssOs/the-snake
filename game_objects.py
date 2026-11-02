@@ -6,7 +6,9 @@
 """
 
 import constants as const
+
 from random import choice, randint
+
 import pygame
 
 

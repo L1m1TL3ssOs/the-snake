@@ -10,16 +10,36 @@ Attributes:
     clock (pygame.time.Clock): Игровой таймер для контроля частоты кадров.
 """
 
+from random import randint
+
 import pygame
+
 from constants import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, GRID_SIZE, GRID_WIDTH, GRID_HEIGHT, SPEED,
-    BOARD_BACKGROUND_COLOR, STONE_COLOR, APPLE_COLOR, BAD_APPLE_COLOR,
-    SNAKE_COLOR, UP, DOWN, LEFT, RIGHT
+    APPLE_COLOR,
+    BAD_APPLE_COLOR,
+    BOARD_BACKGROUND_COLOR,
+    DOWN,
+    GRID_HEIGHT,
+    GRID_SIZE,
+    GRID_WIDTH,
+    LEFT,
+    RIGHT,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SNAKE_COLOR,
+    SPEED,
+    STONE_COLOR,
+    UP,
 )
 from game_objects import (
-    GameObject, Apple, BadApple, Stone, TriangleBigStone, Snake,
+    Apple,
+    BadApple,
+    GameObject,
+    Snake,
+    Stone,
+    TriangleBigStone,
 )
-from random import randint
+
 
 __all__ = [
     'GRID_SIZE', 'GRID_WIDTH', 'GRID_HEIGHT', 'GameObject', 'main',
