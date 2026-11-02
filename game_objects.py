@@ -8,6 +8,7 @@
 from random import choice, randint
 
 import pygame
+
 import constants as const
 
 

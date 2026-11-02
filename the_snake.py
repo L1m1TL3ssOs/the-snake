@@ -28,7 +28,7 @@ from constants import (
     SNAKE_COLOR,
     SPEED,
     STONE_COLOR,
-    UP
+    UP,
 )
 from game_objects import (
     Apple,
@@ -36,7 +36,7 @@ from game_objects import (
     GameObject,
     Snake,
     Stone,
-    TriangleBigStone
+    TriangleBigStone,
 )
 
 
