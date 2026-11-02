@@ -9,31 +9,19 @@ Attributes:
     screen (pygame.Surface): Главное графическое окно отображения игры.
     clock (pygame.time.Clock): Игровой таймер для контроля частоты кадров.
 """
+
+# isort: off
 from random import randint
 
 import pygame
 
-from constants import APPLE_COLOR
-from constants import BAD_APPLE_COLOR
-from constants import BOARD_BACKGROUND_COLOR
-from constants import DOWN
-from constants import GRID_HEIGHT
-from constants import GRID_SIZE
-from constants import GRID_WIDTH
-from constants import LEFT
-from constants import RIGHT
-from constants import SCREEN_HEIGHT
-from constants import SCREEN_WIDTH
-from constants import SNAKE_COLOR
-from constants import SPEED
-from constants import STONE_COLOR
-from constants import UP
-from game_objects import Apple
-from game_objects import BadApple
-from game_objects import GameObject
-from game_objects import Snake
-from game_objects import Stone
+from constants import APPLE_COLOR, BAD_APPLE_COLOR, BOARD_BACKGROUND_COLOR
+from constants import DOWN, GRID_HEIGHT, GRID_SIZE, GRID_WIDTH, LEFT, RIGHT
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH, SNAKE_COLOR, SPEED
+from constants import STONE_COLOR, UP
+from game_objects import Apple, BadApple, GameObject, Snake, Stone
 from game_objects import TriangleBigStone
+# isort: on
 
 
 __all__ = [
