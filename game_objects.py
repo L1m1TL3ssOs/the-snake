@@ -47,8 +47,8 @@ class GameObject:
                 собственную логику отрисовки.
         """
         raise NotImplementedError(
-            "Метод draw() не переопределен в дочернем классе "
-            f"{self.__class__.__name__}!"
+            'Метод draw() не переопределен в дочернем классе.'
+            f'{self.__class__.__name__}!'
         )
 
 
@@ -510,12 +510,6 @@ class Snake(GameObject):
         if surface is None:
             return
 
-        # for x, y in self.positions:
-        #     pg.draw.rect(
-        #         surface,
-        #         const.BOARD_BACKGROUND_COLOR,
-        #         pg.Rect((x, y), (const.GRID_SIZE, const.GRID_SIZE))
-        #     )
         self.shrink()
         self.freeze_ticks = const.BOUNCE_FREEZE_TICKS
         new_positions = []
