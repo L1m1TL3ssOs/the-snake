@@ -1,8 +1,8 @@
 """Модуль физических и графических объектов игры 'Змейка'.
 
 Содержит иерархию классов игровых сущностей. Все классы унаследованы от
-базового GameObject и поддерживают безопасную инициализацию в тестовой среде
-(без графического контекста Pygame) при передаче `surface=None`.
+базового GameObject и поддерживают безопасную бесконтекстную инициализацию
+без прямой зависимости от графического движка Pygame при создании объектов.
 """
 
 from random import choice, randint
@@ -19,10 +19,12 @@ class GameObject:
     и отрисовки сущностей на игровом поле.
 
     Attributes:
-        surface (pygame.Surface | None): Поверхность отрисовки кадра.
-        body_color (tuple[int, int, int] | None): Базовый цвет объекта.
-        position (tuple[int, int] | None): Координаты верхнего левого угла
-            (X, Y).
+        surface (None): Заглушка исключительно для обеспечения обратной
+            совместимости с автотестами платформы.
+        body_color (tuple[int, int, int] | None): Базовый цвет объекта для
+            резервной отрисовки примитивами.
+        position (tuple[int, int] | None): Координаты базовой ячейки
+            объекта (X, Y) на сетке.
     """
 
     def __init__(self, body_color=None, position=None):
@@ -33,17 +35,28 @@ class GameObject:
     def draw(self, surface):
         """Отрисовывает объект на игровой поверхности.
 
-        Должен быть переопределен в классах-наследниках.
+        Обязан быть переопределен в дочерних классах с поддержкой
+        графических ресурсов и текстурирования.
+
+        Args:
+            surface (pygame.Surface): Активная графическая поверхность
+                экрана для вывода кадра.
+
+        Raises:
+            NotImplementedError: Если дочерний класс не реализовал
+                собственную логику отрисовки.
         """
-        pass
+        raise NotImplementedError(
+            "Метод draw() не переопределен в дочернем классе "
+            f"{self.__class__.__name__}!"
+        )
 
 
 class Apple(GameObject):
-    """Класс съедобного объекта (яблока), увеличивающего длину змейки.
+    """Класс стандартного яблока, увеличивающего длину змейки.
 
-    Автоматически определяет свою позицию на свободных ячейках поля
-    при создании и загружает альфа-текстуру, если передан валидный
-    графический контекст.
+    Размещается на свободных ячейках поля и поддерживает ленивую
+    загрузку растровой текстуры при первом рендеринге.
     """
 
     def __init__(
@@ -53,17 +66,13 @@ class Apple(GameObject):
             existing_obstacles=None
     ):
         super().__init__(body_color, position)
-        self.color = body_color
         self.position = position
         self.image = None
-        if position is None:
-            self.randomize_position(existing_obstacles)
+        self.randomize_position(existing_obstacles)
 
     def draw(self, surface):
-        """Отрисовывает спрайт яблока на экране.
-
-        Прерывает выполнение, если графическая поверхность или текстура
-        не были инициализированы (защита тестового окружения).
+        """Выполняет ленивую загрузку текстуры и отрисовывает яблоко
+        на экране.
         """
         if surface is None:
             return
@@ -75,26 +84,59 @@ class Apple(GameObject):
         surface.blit(self.image, self.position)
 
     def randomize_position(self, existing_obstacles):
-        """Генерирует новые случайные координаты объекта
-        на сетке игрового поля.
-
-        Алгоритм проверяет координаты по сетке GRID_SIZE и исключает наложение
-        на занятые ячейки других объектов из переданного буфера препятствий.
-
-        Args:
-            existing_obstacles (list[GameObject] | None): Список объектов,
-                координаты которых запрещены для генерации точки спавна.
         """
+        Находит случайную позицию для яблока с контролем наложения.
+
+        Цикл выполняется до тех пор, пока позиция не определена или
+        сгенерированная точка входит в коллекцию занятых ячеек.
+        """
+        # Подготовка списка препятствий
         if not isinstance(existing_obstacles, list):
             existing_obstacles = []
-        while True:
+
+        # Сброс позиции и запуск флага для входа в цикл
+        is_unsafe = True
+        self.position = None
+
+        # Контролируемый поиск свободной ячейки
+        while self.position is None or is_unsafe:
             new_position = (
                 randint(0, const.GRID_WIDTH - 1) * const.GRID_SIZE,
                 randint(0, const.GRID_HEIGHT - 1) * const.GRID_SIZE
             )
-            if new_position not in existing_obstacles:
+
+            is_unsafe = False
+            for obj in existing_obstacles:
+                # Извлечение координат объекта
+                obj_cells = (
+                    obj.positions
+                    if hasattr(obj, 'positions') and obj.positions
+                    else [obj.position]
+                )
+
+                # Защита от гор: отступ в 1 ячейку
+                if obj.__class__.__name__ == 'TriangleBigStone':
+                    if any(
+                        abs(new_position[0] - cell[0]) <= const.GRID_SIZE
+                        and abs(new_position[1] - cell[1]) <= const.GRID_SIZE
+                        for cell in obj_cells
+                    ):
+                        is_unsafe = True
+                        break
+
+                # Защита от остальных объектов
+                else:
+                    if new_position in obj_cells:
+                        is_unsafe = True
+                        break
+
+            # Утверждение позиции, если коллизий не обнаружено
+            if not is_unsafe:
                 self.position = new_position
-                break
+
+        # Синхронизация массива координат для внешних проверок
+        if hasattr(self, 'positions'):
+            self.positions = [self.position]
 
 
 class BadApple(Apple):
@@ -113,10 +155,11 @@ class BadApple(Apple):
         super().__init__(body_color, position, existing_obstacles)
 
     def draw(self, surface):
-        """Отрисовывает спрайт гнилого яблока на экране.
+        """
+        Отрисовывает спрайт гнилого яблока методом Lazy Loading.
 
-        Прерывает выполнение, если графическая поверхность или текстура
-        не были инициализированы (защита тестового окружения).
+        Загружает и масштабирует текстуру при первом кадре. Защищен
+        от передачи пустой поверхности (None).
         """
         if surface is None:
             return
@@ -144,42 +187,63 @@ class Stone(GameObject):
     ):
         super().__init__(body_color, position)
         self.image = None
-        if position is None:
-            self.randomize_position(existing_obstacles)
+        self.randomize_position(existing_obstacles)
         self.positions = [self.position]
 
     def randomize_position(self, existing_obstacles):
-        """Находит случайную позицию с контролем дистанции Чебышёва.
-
-        Исключает генерацию камня в радиусе двух ячеек (<= 2 * GRID_SIZE)
-        вокруг уже существующих на поле объектов для предотвращения
-        блокирования проходов.
-        """
+        """Находит случайную позицию для камня с контролем наложения."""
+        # Подготовка списка препятствий
         if not isinstance(existing_obstacles, list):
             existing_obstacles = []
 
-        while True:
+        # Сброс позиции и запуск флага для входа в цикл
+        is_unsafe = True
+        self.position = None
+
+        # Контролируемый поиск свободной ячейки
+        while self.position is None or is_unsafe:
             new_position = (
                 randint(0, const.GRID_WIDTH - 1) * const.GRID_SIZE,
                 randint(0, const.GRID_HEIGHT - 1) * const.GRID_SIZE
             )
-            if not any(
-                abs(new_position[0] - obj[0]) <= (
-                    2 * const.GRID_SIZE
+
+            is_unsafe = False
+            for obj in existing_obstacles:
+                # Извлечение координат объекта
+                obj_cells = (
+                    obj.positions
+                    if hasattr(obj, 'positions') and obj.positions
+                    else [obj.position]
                 )
-                and abs(new_position[1] - obj[1]) <= (
-                    2 * const.GRID_SIZE
-                )
-                for obj in existing_obstacles
-            ):
+
+                # Защита от гор: отступ в 1 ячейку
+                if obj.__class__.__name__ == 'TriangleBigStone':
+                    if any(
+                        abs(new_position[0] - cell[0]) <= const.GRID_SIZE
+                        and abs(new_position[1] - cell[1]) <= const.GRID_SIZE
+                        for cell in obj_cells
+                    ):
+                        is_unsafe = True
+                        break
+                # Защита от остальных объектов
+                else:
+                    if new_position in obj_cells:
+                        is_unsafe = True
+                        break
+
+            # Утверждение позиции, если коллизий не обнаружено
+            if not is_unsafe:
                 self.position = new_position
-                self.positions = [self.position]
-                break
+
+        # Синхронизация массива координат камня
+        self.positions = [self.position]
 
     def draw(self, surface):
-        """Рендерит спрайт камня на игровой поверхности.
+        """
+        Отрисовывает спрайт камня методом Lazy Loading.
 
-        Внимание: требует обязательного наличия инициализированного surface.
+        Загружает и масштабирует текстуру при первом вызове. Защищен
+        от передачи пустой поверхности (None).
         """
         if surface is None:
             return
@@ -192,10 +256,11 @@ class Stone(GameObject):
 
 
 class TriangleBigStone(GameObject):
-    """Класс сложного статичного препятствия формы 'Большая скала'.
+    """
+    Статичное составное препятствие в форме 3-ячеичной пирамиды.
 
-    Занимает на координатной сетке три связанных ячейки в форме треугольника
-    (пирамида из камней) и требует расширенной области текстурирования (3х2).
+    Занимает три связанных ячейки поля. Отрисовывается с помощью единого
+    крупного спрайта с автоматическим выравниванием по координатам маски.
     """
 
     def __init__(
@@ -206,58 +271,77 @@ class TriangleBigStone(GameObject):
     ):
         super().__init__(body_color, position)
         self.image = None
-        if position is None:
-            self.randomize_position(existing_obstacles)
+        self.positions = []
+
+        self.randomize_position(existing_obstacles or [])
+
+    def draw(self, surface):
+        """
+        Отрисовывает составной спрайт скалы со смещением текстуры.
+
+        Использует Lazy Loading. Автоматически сдвигает текстуру 3х2 ячейки
+        относительно базовой точки-вершины для точного покрытия геометрии.
+        """
+        if surface is None:
+            return
+        if self.image is None:
+            self.image = pg.transform.scale(
+                pg.image.load(const.MOUNTAIN_IMG_PATH).convert_alpha(),
+                (3 * const.GRID_SIZE, 2 * const.GRID_SIZE)
+            )
+        render_x = self.position[0] - const.GRID_SIZE
+        render_y = self.position[1]
+        surface.blit(self.image, (render_x, render_y))
+
+    def randomize_position(self, existing_obstacles):
+        """
+        Вычисляет координаты пирамиды с проверкой дистанции Чебышёва.
+
+        Сбор занятых координат вынесен за пределы цикла. Проверка дистанции
+        и границ вынесена в заголовок контролируемого цикла while.
+        """
+        if not isinstance(existing_obstacles, list):
+            existing_obstacles = []
+
+        # Сбор занятых ячеек до цикла
+        occupied_cells = set()
+        for obj in existing_obstacles:
+            if hasattr(obj, 'positions') and obj.positions:
+                occupied_cells.update(obj.positions)
+            elif hasattr(obj, 'position') and obj.position:
+                occupied_cells.add(obj.position)
+
+        # Флаг для первой итерации и проверки дистанции Чебышёва
+        is_unsafe = True
+        self.position = None
+
+        # Контролируемый цикл: пока позиции нет или она нарушает дистанцию
+        while self.position is None or is_unsafe:
+            # Ограничиваем спавн по краям, чтобы у скалы влезли бока
+            new_pos = (
+                randint(1, const.GRID_WIDTH - 2) * const.GRID_SIZE,
+                randint(0, const.GRID_HEIGHT - 2) * const.GRID_SIZE
+            )
+
+            # Проверяем дистанцию Чебышёва (нахождение в радиусе 3 ячеек)
+            is_unsafe = any(
+                abs(new_pos[0] - cell[0]) <= 3 * const.GRID_SIZE
+                and abs(new_pos[1] - cell[1]) <= 3 * const.GRID_SIZE
+                for cell in occupied_cells
+            )
+
+            # Если точка безопасна, фиксируем вершину скалы
+            if not is_unsafe:
+                self.position = new_pos
+
+        # Финально заполняем все 3 ячейки тела скалы на основе
+        # утвержденной вершины
         x, y = self.position
         self.positions = [
             (x, y),
             (x - const.GRID_SIZE, y + const.GRID_SIZE),
             (x + const.GRID_SIZE, y + const.GRID_SIZE)
         ]
-        if self.surface is not None:
-            self.image = pg.image.load(
-                const.MOUNTAIN_IMG_PATH).convert_alpha()
-            self.image = pg.transform.scale(
-                self.image, (const.GRID_SIZE * 3, const.GRID_SIZE * 2))
-
-    def draw(self, surface):
-        """Отрисовывает текстуру скалы со смещением относительно базовой точки.
-
-        Смещение вычисляется автоматически для выравнивания графического
-        ресурса размера 3х2 ячейки по маске занимаемых координат.
-        """
-        if surface is None or self.image is None:
-            return
-        render_x = self.position[0] - const.GRID_SIZE
-        render_y = self.position[1]
-        surface.blit(self.image, (render_x, render_y))
-
-    def randomize_position(self, existing_obstacles):
-        """Генерирует позицию вершины скалы с учетом геометрии и отступов.
-
-        Сужает границы генерации `randint`, предотвращая выход
-        боковых элементов пирамиды за края игрового экрана, и
-        проверяет дистанцию Чебышёва (<= 3 ячейки) до других объектов.
-        """
-        if not isinstance(existing_obstacles, list):
-            existing_obstacles = []
-        while True:
-            new_x = randint(1, const.GRID_WIDTH - 2) * const.GRID_SIZE
-            new_y = randint(0, const.GRID_HEIGHT - 2) * const.GRID_SIZE
-            fit_position = True
-            for obstacle in existing_obstacles:
-                for cell in obstacle.positions:
-                    if (
-                        abs(new_x - cell[0]) <= 3 * const.GRID_SIZE
-                        and abs(new_y - cell[1]) <= 3 * const.GRID_SIZE
-                    ):
-                        fit_position = False
-                        break
-                if not fit_position:
-                    break
-            if fit_position is True:
-                self.position = (new_x, new_y)
-                break
 
 
 class Snake(GameObject):
@@ -280,39 +364,20 @@ class Snake(GameObject):
     def __init__(
             self,
             body_color=const.SNAKE_COLOR,
-            position=None
+            position=const.SNAKE_START_POSITION
     ):
-        if position is None:
-            position = const.SNAKE_START_POSITION
+        position = const.SNAKE_START_POSITION
         super().__init__(body_color, position)
         self.length = 1
-        self.positions = [position]
+        self.positions = [self.position]
         self.direction = choice(
             [const.RIGHT, const.LEFT, const.UP, const.DOWN])
         self.next_direction = None
         self.last = None
         self.freeze_ticks = 0
+
         self.head_image = {}
         self.body_image = None
-        if self.surface is not None:
-            self.body_image = pg.transform.scale(
-                pg.image.load(const.SNAKE_BODY_IMG).convert_alpha(),
-                (const.GRID_SIZE, const.GRID_SIZE)
-            )
-            self.head_image = {
-                const.UP: pg.transform.scale(
-                    pg.image.load(const.SNAKE_HEAD_UP).convert_alpha(),
-                    (const.GRID_SIZE, const.GRID_SIZE)),
-                const.DOWN: pg.transform.scale(
-                    pg.image.load(const.SNAKE_HEAD_DOWN).convert_alpha(),
-                    (const.GRID_SIZE, const.GRID_SIZE)),
-                const.LEFT: pg.transform.scale(
-                    pg.image.load(const.SNAKE_HEAD_LEFT).convert_alpha(),
-                    (const.GRID_SIZE, const.GRID_SIZE)),
-                const.RIGHT: pg.transform.scale(
-                    pg.image.load(const.SNAKE_HEAD_RIGHT).convert_alpha(),
-                    (const.GRID_SIZE, const.GRID_SIZE))
-            }
 
     def draw(self, surface):
         """Отрисовывает все сегменты тела и голову змейки на экране.
@@ -322,14 +387,38 @@ class Snake(GameObject):
         вектору движения (`self.direction`). Прерывает выполнение, если
         графические ресурсы не загружены.
         """
-        if not self.head_image or self.body_image is None:
+        if surface is None:
             return
+
+        # загружаем картинки 1 раз при первом вызове draw
+        if self.body_image is None:
+            self.body_image = pg.transform.scale(
+                pg.image.load(const.SNAKE_BODY_IMG).convert_alpha(),
+                (const.GRID_SIZE, const.GRID_SIZE)
+            )
+            self.head_image = {
+                const.UP: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_UP).convert_alpha(),
+                    (const.GRID_SIZE, const.GRID_SIZE)
+                ),
+                const.DOWN: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_DOWN).convert_alpha(),
+                    (const.GRID_SIZE, const.GRID_SIZE)
+                ),
+                const.LEFT: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_LEFT).convert_alpha(),
+                    (const.GRID_SIZE, const.GRID_SIZE)
+                ),
+                const.RIGHT: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_RIGHT).convert_alpha(),
+                    (const.GRID_SIZE, const.GRID_SIZE)
+                )
+            }
+
+        # Отрисовка тела (начиная со второго элемента)
         for position in self.positions[1:]:
             surface.blit(self.body_image, position)
-
-        # Отрисовка головы змейки
-        current_head_img = self.head_image[self.direction]
-        surface.blit(current_head_img, self.positions[0])
+        surface.blit(self.head_image[self.direction], self.positions[0])
 
     def get_head_position(self):
         """Возвращает текущие координаты головы змейки.
@@ -365,6 +454,7 @@ class Snake(GameObject):
         if self.freeze_ticks > 0:
             self.freeze_ticks -= 1
             return
+        self.update_direction()
         current_position = self.get_head_position()
         new_position_x = (
             (current_position[0] + self.direction[0] * const.GRID_SIZE)
@@ -391,6 +481,7 @@ class Snake(GameObject):
         self.direction = const.RIGHT
         self.next_direction = None
         self.last = None
+        self.freeze_ticks = 0
 
     def shrink(self):
         """Уменьшает длину змейки на один сегмент.
@@ -401,12 +492,6 @@ class Snake(GameObject):
         с изолированными тестами отрисовки.
         """
         if self.length > 1:
-            tail_to_erase = self.positions[-1]
-            pg.draw.rect(
-                self.surface,
-                const.BOARD_BACKGROUND_COLOR,
-                pg.Rect(tail_to_erase, (const.GRID_SIZE, const.GRID_SIZE))
-            )
             self.length -= 1
             self.positions.pop()
 
@@ -425,12 +510,12 @@ class Snake(GameObject):
         if surface is None:
             return
 
-        for x, y in self.positions:
-            pg.draw.rect(
-                surface,
-                const.BOARD_BACKGROUND_COLOR,
-                pg.Rect((x, y), (const.GRID_SIZE, const.GRID_SIZE))
-            )
+        # for x, y in self.positions:
+        #     pg.draw.rect(
+        #         surface,
+        #         const.BOARD_BACKGROUND_COLOR,
+        #         pg.Rect((x, y), (const.GRID_SIZE, const.GRID_SIZE))
+        #     )
         self.shrink()
         self.freeze_ticks = const.BOUNCE_FREEZE_TICKS
         new_positions = []
