@@ -12,12 +12,14 @@
 движения используют декартову систему координат, где начало (0, 0) находится
 в левом верхнем углу экрана (ось Y направлена вниз).
 """
+import pygame as pg
 
 # Геометрия игрового поля и координатной сетки
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
 GRID_SIZE = 20
 GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
 GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
+SNAKE_START_POSITION = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
 # Дискретные векторы направлений движения (X, Y)
 UP = (0, -1)
@@ -25,13 +27,37 @@ DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
+TURNS = {
+    pg.K_UP: (UP, DOWN),
+    pg.K_DOWN: (DOWN, UP),
+    pg.K_LEFT: (LEFT, RIGHT),
+    pg.K_RIGHT: (RIGHT, LEFT),
+    pg.K_w: (UP, DOWN),
+    pg.K_s: (DOWN, UP),
+    pg.K_a: (LEFT, RIGHT),
+    pg.K_d: (RIGHT, LEFT),
+}
+
 # Цветовая палитра RGB
-BOARD_BACKGROUND_COLOR = (0, 0, 0)
-BORDER_COLOR = (93, 216, 228)
-APPLE_COLOR = (255, 0, 0)
-BAD_APPLE_COLOR = (148, 0, 211)
-SNAKE_COLOR = (0, 255, 0)
-STONE_COLOR = (128, 128, 128)
+COLOR_RED = (255, 0, 0)
+COLOR_GREEN = (0, 255, 0)
+COLOR_BLUE = (0, 0, 255)
+COLOR_PURPLE = (128, 0, 128)
+COLOR_YELLOW = (255, 255, 0)
+COLOR_CYAN = (0, 255, 255)
+COLOR_ICE_BLUE = (93, 216, 228)
+COLOR_BLACK = (0, 0, 0)
+COLOR_WHITE = (255, 255, 255)
+COLOR_GRAY = (128, 128, 128)
+COLOR_DARK_GRAY = (40, 40, 40)
+
+# Цвета игровых объектов и интерфейса
+BOARD_BACKGROUND_COLOR = COLOR_BLACK
+BORDER_COLOR = COLOR_ICE_BLUE
+APPLE_COLOR = COLOR_RED
+BAD_APPLE_COLOR = COLOR_PURPLE
+SNAKE_COLOR = COLOR_GREEN
+STONE_COLOR = COLOR_GRAY
 
 # Физические параметры игрового процесса
 SPEED = 5

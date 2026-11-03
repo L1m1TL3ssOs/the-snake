@@ -11,14 +11,15 @@ Attributes:
 """
 
 # isort: off
+import sys
 from random import randint
 
-import pygame
+import pygame as pg
 
 from constants import APPLE_COLOR, BAD_APPLE_COLOR, BOARD_BACKGROUND_COLOR
 from constants import DOWN, GRID_HEIGHT, GRID_SIZE, GRID_WIDTH, LEFT, RIGHT
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH, SNAKE_COLOR, SPEED
-from constants import STONE_COLOR, UP
+from constants import SNAKE_START_POSITION, STONE_COLOR, TURNS, UP
 from game_objects import Apple, BadApple, GameObject, Snake, Stone
 from game_objects import TriangleBigStone
 # isort: on
@@ -26,14 +27,14 @@ from game_objects import TriangleBigStone
 
 __all__ = [
     'GRID_SIZE', 'GRID_WIDTH', 'GRID_HEIGHT', 'GameObject', 'main',
-    'handle_keys'
+    'handle_keys', 'UP', 'DOWN', 'LEFT', 'RIGHT'
 ]
 
-pygame.display.set_caption('Змейка')
+pg.display.set_caption('Змейка')
 
-clock = pygame.time.Clock()
+clock = pg.time.Clock()
 
-screen = pygame.display.set_mode(
+screen = pg.display.set_mode(
     (SCREEN_WIDTH, SCREEN_HEIGHT),
     0,
     32
@@ -56,31 +57,15 @@ def handle_keys(game_object):
         SystemExit: При получении события pygame.QUIT для корректного
             закрытия игрового процесса.
     """
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            raise SystemExit
-        elif event.type == pygame.KEYDOWN:
-            if (
-                event.key == pygame.K_UP
-                and game_object.direction != DOWN
-            ):
-                game_object.next_direction = UP
-            elif (
-                event.key == pygame.K_DOWN
-                and game_object.direction != UP
-            ):
-                game_object.next_direction = DOWN
-            elif (
-                event.key == pygame.K_LEFT
-                and game_object.direction != RIGHT
-            ):
-                game_object.next_direction = LEFT
-            elif (
-                event.key == pygame.K_RIGHT
-                and game_object.direction != LEFT
-            ):
-                game_object.next_direction = RIGHT
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
+            sys.exit()
+        elif event.type == pg.KEYDOWN:
+            if event.key in TURNS:
+                new_direction, opposite_direction = TURNS[event.key]
+                if game_object.direction != opposite_direction:
+                    game_object.next_direction = new_direction
 
 
 def main():
@@ -97,7 +82,7 @@ def main():
     проверку коллизий (с едой, препятствиями или хвостом) и полную перерисовку
     экрана с нуля (Full Frame Redraw) для исключения графических артефактов.
     """
-    pygame.init()
+    pg.init()
 
     obstacles = []
     for _ in range(1, 5):
@@ -115,7 +100,7 @@ def main():
     snake = Snake(
         screen,
         SNAKE_COLOR,
-        (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        SNAKE_START_POSITION
     )
 
     while True:
@@ -149,7 +134,7 @@ def main():
         for obstacle in obstacles:
             obstacle.draw()
         snake.draw()
-        pygame.display.update()
+        pg.display.update()
 
 
 if __name__ == '__main__':

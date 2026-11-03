@@ -7,7 +7,7 @@
 
 from random import choice, randint
 
-import pygame
+import pygame as pg
 
 import constants as const
 
@@ -60,9 +60,9 @@ class Apple(GameObject):
         if position is None:
             self.randomize_position(existing_obstacles)
         if self.surface is not None:
-            self.image = pygame.image.load(
+            self.image = pg.image.load(
                 const.APPLE_IMG_PATH).convert_alpha()
-            self.image = pygame.transform.scale(
+            self.image = pg.transform.scale(
                 self.image, (const.GRID_SIZE, const.GRID_SIZE))
 
     def draw(self):
@@ -120,9 +120,9 @@ class BadApple(Apple):
     ):
         super().__init__(surface, body_color, position)
         if self.surface is not None:
-            self.image = pygame.image.load(
+            self.image = pg.image.load(
                 const.BAD_APPLE_IMG_PATH).convert_alpha()
-            self.image = pygame.transform.scale(
+            self.image = pg.transform.scale(
                 self.image, (const.GRID_SIZE, const.GRID_SIZE))
 
 
@@ -147,9 +147,9 @@ class Stone(GameObject):
             self.randomize_position(existing_obstacles)
         self.positions = [self.position]
         if self.surface is not None:
-            self.image = pygame.image.load(
+            self.image = pg.image.load(
                 const.STONE_IMG_PATH).convert_alpha()
-            self.image = pygame.transform.scale(
+            self.image = pg.transform.scale(
                 self.image, (const.GRID_SIZE, const.GRID_SIZE))
 
     def randomize_position(self, existing_obstacles):
@@ -212,9 +212,9 @@ class TriangleBigStone(GameObject):
             (x + const.GRID_SIZE, y + const.GRID_SIZE)
         ]
         if self.surface is not None:
-            self.image = pygame.image.load(
+            self.image = pg.image.load(
                 const.MOUNTAIN_IMG_PATH).convert_alpha()
-            self.image = pygame.transform.scale(
+            self.image = pg.transform.scale(
                 self.image, (const.GRID_SIZE * 3, const.GRID_SIZE * 2))
 
     def draw(self):
@@ -293,22 +293,22 @@ class Snake(GameObject):
         self.head_image = {}
         self.body_image = None
         if self.surface is not None:
-            self.body_image = pygame.transform.scale(
-                pygame.image.load(const.SNAKE_BODY_IMG).convert_alpha(),
+            self.body_image = pg.transform.scale(
+                pg.image.load(const.SNAKE_BODY_IMG).convert_alpha(),
                 (const.GRID_SIZE, const.GRID_SIZE)
             )
             self.head_image = {
-                const.UP: pygame.transform.scale(
-                    pygame.image.load(const.SNAKE_HEAD_UP).convert_alpha(),
+                const.UP: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_UP).convert_alpha(),
                     (const.GRID_SIZE, const.GRID_SIZE)),
-                const.DOWN: pygame.transform.scale(
-                    pygame.image.load(const.SNAKE_HEAD_DOWN).convert_alpha(),
+                const.DOWN: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_DOWN).convert_alpha(),
                     (const.GRID_SIZE, const.GRID_SIZE)),
-                const.LEFT: pygame.transform.scale(
-                    pygame.image.load(const.SNAKE_HEAD_LEFT).convert_alpha(),
+                const.LEFT: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_LEFT).convert_alpha(),
                     (const.GRID_SIZE, const.GRID_SIZE)),
-                const.RIGHT: pygame.transform.scale(
-                    pygame.image.load(const.SNAKE_HEAD_RIGHT).convert_alpha(),
+                const.RIGHT: pg.transform.scale(
+                    pg.image.load(const.SNAKE_HEAD_RIGHT).convert_alpha(),
                     (const.GRID_SIZE, const.GRID_SIZE))
             }
 
@@ -400,10 +400,10 @@ class Snake(GameObject):
         """
         if self.length > 1:
             tail_to_erase = self.positions[-1]
-            pygame.draw.rect(
+            pg.draw.rect(
                 self.surface,
                 const.BOARD_BACKGROUND_COLOR,
-                pygame.Rect(tail_to_erase, (const.GRID_SIZE, const.GRID_SIZE))
+                pg.Rect(tail_to_erase, (const.GRID_SIZE, const.GRID_SIZE))
             )
             self.length -= 1
             self.positions.pop()
@@ -421,10 +421,10 @@ class Snake(GameObject):
                     прохода сквозь границы экрана).
         """
         for x, y in self.positions:
-            pygame.draw.rect(
+            pg.draw.rect(
                 self.surface,
                 const.BOARD_BACKGROUND_COLOR,
-                pygame.Rect((x, y), (const.GRID_SIZE, const.GRID_SIZE))
+                pg.Rect((x, y), (const.GRID_SIZE, const.GRID_SIZE))
             )
         self.shrink()
         self.freeze_ticks = const.BOUNCE_FREEZE_TICKS
