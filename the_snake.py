@@ -1,13 +1,19 @@
 """Главный управляющий модуль игры 'Змейка'.
 
-Реализует основной игровой цикл, обработку пользовательского ввода,
-управление состояниями игровых объектов и их рендеринг на экране.
-Спроектирован с учетом изоляции контекста для корректного прохождения
-автоматических тестов (с использованием прокси-импорта через __all__).
+Реализует декомпозированный игровой цикл, диспетчеризацию ввода,
+обсчет физики коллизий и полиморфный рендеринг объектов на экране.
+Спроектирован с учетом требований изоляции контекста для совместимости
+с автоматическими тестами платформы.
 
-Attributes:
-    screen (pygame.Surface): Главное графическое окно отображения игры.
-    clock (pygame.time.Clock): Игровой таймер для контроля частоты кадров.
+Функции модуля:
+    handle_keys(game_object): Обработка ввода и смена вектора движения.
+    main(): Точка входа, координирующая подсистемы игрового цикла.
+
+Внутренние утилиты (поддержка декомпозиции):
+    _create_game_objects(): Фабрика инициализации игровых сущностей.
+    _handle_collisions(): Диспетчер проверки всех типов коллизий.
+    _reset_after_self_collision(): Безопасный респавн с защитой от наложений.
+    _draw_frame(): Очистка кадра и последовательный рендеринг слоев.
 """
 
 # isort: off
@@ -52,10 +58,6 @@ def handle_keys(game_object):
     Args:
         game_object (Snake): Экземпляр игрового персонажа (змейка),
             у которого изменяется атрибут `next_direction`.
-
-    Raises:
-        SystemExit: При получении события pygame.QUIT для корректного
-            закрытия игрового процесса.
     """
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -68,22 +70,8 @@ def handle_keys(game_object):
                     game_object.next_direction = new_direction
 
 
-def main():
-    """Инициализирует компоненты игры и запускает бесконечный игровой цикл.
-
-    Выполняет пошаговую подготовку окружения:
-        1. Инициализирует подсистемы Pygame.
-        2. Генерирует массив препятствий (большие скалы и мелкие камни)
-           с контролем дистанции спавна для исключения перекрытий.
-        3. Создает динамические объекты: змейку и элементы еды.
-
-    Игровой цикл работает на фиксированной частоте кадров (SPEED)
-    и последовательно выполняет: сбор ввода, обновление физических координат,
-    проверку коллизий (с едой, препятствиями или хвостом) и полную перерисовку
-    экрана с нуля (Full Frame Redraw) для исключения графических артефактов.
-    """
-    pg.init()
-
+def _create_game_objects():
+    """Инициализирует и возвращает стартовый набор игровых объектов."""
     obstacles = []
     for _ in range(1, 5):
         obstacles.append(
@@ -97,11 +85,61 @@ def main():
     bad_apple = BadApple(
         screen, BAD_APPLE_COLOR, existing_obstacles=obstacles
     )
-    snake = Snake(
-        screen,
-        SNAKE_COLOR,
-        SNAKE_START_POSITION
-    )
+    snake = Snake(screen, SNAKE_COLOR, SNAKE_START_POSITION)
+    return obstacles, apple, bad_apple, snake
+
+
+def _reset_after_self_collision(snake, obstacles, apple, bad_apple):
+    """Сбрасывает позиции всех объектов на поле без взаимных перекрытий."""
+    snake.reset()
+
+    new_obstacles, new_apple, new_bad_apple, _ = _create_game_objects()
+
+    obstacles.clear()
+    obstacles.extend(new_obstacles)
+
+    apple.position = new_apple.position
+    bad_apple.position = new_bad_apple.position
+
+
+def _handle_collisions(snake, head, apple, bad_apple, obstacles):
+    """Выполняет проверку всех типов коллизий на текущем шаге симуляции."""
+    if head in snake.positions[1:]:
+        _reset_after_self_collision(snake, obstacles, apple, bad_apple)
+    elif head == apple.position:
+        snake.length += 1
+        apple.randomize_position(obstacles)
+    elif head == bad_apple.position:
+        snake.shrink()
+        bad_apple.randomize_position(obstacles)
+
+    for obstacle in obstacles:
+        if head in obstacle.positions:
+            snake.handle_bounce()
+            break
+
+
+def _draw_frame(apple, bad_apple, obstacles, snake):
+    """Отрисовывает все игровые слои на экране и обновляет дисплей."""
+    apple.draw()
+    bad_apple.draw()
+    for obstacle in obstacles:
+        obstacle.draw()
+    snake.draw()
+    pg.display.update()
+
+
+def main():
+    """Координирует инициализацию систем и запускает главный игровой цикл.
+
+    Вызывает создание объектов, обеспечивает фиксированную частоту
+    кадров (SPEED) и последовательно делегирует задачи сбора ввода,
+    физических обновлений, обсчета коллизий и рендеринга специализированным
+    внутренним функциям модуля.
+    """
+    pg.init()
+
+    obstacles, apple, bad_apple, snake = _create_game_objects()
 
     while True:
         screen.fill(BOARD_BACKGROUND_COLOR)
@@ -112,29 +150,8 @@ def main():
         snake.move()
         head = snake.get_head_position()
 
-        # Проверка коллизий с едой и самопересечением
-        if head in snake.positions[1:]:
-            snake.reset()
-        elif head == apple.position:
-            snake.length += 1
-            apple.randomize_position(obstacles)
-        elif head == bad_apple.position:
-            snake.shrink()
-            bad_apple.randomize_position(obstacles)
-
-        # Полиморфная проверка коллизий со всеми типами препятствий
-        for obstacle in obstacles:
-            if head in obstacle.positions:
-                snake.handle_bounce()
-                break
-
-        # Отрисовка кадра: сначала статика, затем динамическая змейка
-        apple.draw()
-        bad_apple.draw()
-        for obstacle in obstacles:
-            obstacle.draw()
-        snake.draw()
-        pg.display.update()
+        _handle_collisions(snake, head, apple, bad_apple, obstacles)
+        _draw_frame(apple, bad_apple, obstacles, snake)
 
 
 if __name__ == '__main__':

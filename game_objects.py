@@ -281,7 +281,7 @@ class Snake(GameObject):
             position=None
     ):
         if position is None:
-            position = (const.SCREEN_WIDTH // 2, const.SCREEN_HEIGHT // 2)
+            position = const.SNAKE_START_POSITION
         super().__init__(surface, body_color, position)
         self.length = 1
         self.positions = [position]
@@ -385,7 +385,7 @@ class Snake(GameObject):
         и устанавливает дефолтный вектор движения вправо.
         """
         self.length = 1
-        self.positions = [(const.SCREEN_WIDTH // 2, const.SCREEN_HEIGHT // 2)]
+        self.positions = [const.SNAKE_START_POSITION]
         self.direction = const.RIGHT
         self.next_direction = None
         self.last = None
