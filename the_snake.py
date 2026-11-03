@@ -75,17 +75,13 @@ def _create_game_objects():
     obstacles = []
     for _ in range(1, 5):
         obstacles.append(
-            TriangleBigStone(screen, STONE_COLOR, existing_obstacles=obstacles)
+            TriangleBigStone(STONE_COLOR, existing_obstacles=obstacles)
         )
     for _ in range(randint(10, 20)):
-        obstacles.append(
-            Stone(screen, STONE_COLOR, existing_obstacles=obstacles)
-        )
-    apple = Apple(screen, APPLE_COLOR, existing_obstacles=obstacles)
-    bad_apple = BadApple(
-        screen, BAD_APPLE_COLOR, existing_obstacles=obstacles
-    )
-    snake = Snake(screen, SNAKE_COLOR, SNAKE_START_POSITION)
+        obstacles.append(Stone(STONE_COLOR, existing_obstacles=obstacles))
+    apple = Apple(APPLE_COLOR, existing_obstacles=obstacles)
+    bad_apple = BadApple(BAD_APPLE_COLOR, existing_obstacles=obstacles)
+    snake = Snake(SNAKE_COLOR, SNAKE_START_POSITION)
     return obstacles, apple, bad_apple, snake
 
 
@@ -120,17 +116,17 @@ def _handle_collisions(snake, head, apple, bad_apple, obstacles):
 
     for obstacle in obstacles:
         if head in obstacle.positions:
-            snake.handle_bounce()
+            snake.handle_bounce(screen)
             break
 
 
 def _draw_frame(apple, bad_apple, obstacles, snake):
     """Отрисовывает все игровые слои на экране и обновляет дисплей."""
-    apple.draw()
-    bad_apple.draw()
+    apple.draw(screen)
+    bad_apple.draw(screen)
     for obstacle in obstacles:
-        obstacle.draw()
-    snake.draw()
+        obstacle.draw(screen)
+    snake.draw(screen)
     pg.display.update()
 
 
