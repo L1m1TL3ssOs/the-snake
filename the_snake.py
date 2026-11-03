@@ -106,12 +106,17 @@ def _handle_collisions(snake, head, apple, bad_apple, obstacles):
     """Выполняет проверку всех типов коллизий на текущем шаге симуляции."""
     if head in snake.positions[1:]:
         _reset_after_self_collision(snake, obstacles, apple, bad_apple)
-    elif head == apple.position:
-        snake.length += 1
-        apple.randomize_position(obstacles)
-    elif head == bad_apple.position:
-        snake.shrink()
-        bad_apple.randomize_position(obstacles)
+        return
+    is_apple_eaten = (head == apple.position)
+    is_bad_apple_eaten = (head == bad_apple.position)
+    if is_apple_eaten or is_bad_apple_eaten:
+        current_objects = obstacles + [snake]
+        if is_apple_eaten:
+            snake.length += 1
+            apple.randomize_position(current_objects)
+        else:
+            snake.shrink()
+            bad_apple.randomize_position(current_objects)
 
     for obstacle in obstacles:
         if head in obstacle.positions:
