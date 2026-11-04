@@ -28,7 +28,6 @@ class GameObject:
     """
 
     def __init__(self, body_color=None, position=None):
-        self.surface = None
         self.body_color = body_color
         self.position = position
 
